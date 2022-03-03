@@ -23,7 +23,7 @@ if 'BANANA_URL' in os.environ:
 
 def api_threader(api_key, call_id):
     while True:
-        data = check_api(api_key, call_id)
+        data = (await check_api(api_key, call_id))
         if data['message'].lower() == "success":
             return data
         
@@ -39,7 +39,7 @@ def start_main(api_key, model_key, model_inputs, strategy):
     return call_id
 
 def check_main(api_key, call_id):
-    dict_out = check_api(api_key, call_id)
+    dict_out = (await check_api(api_key, call_id))
     return dict_out
 
 
@@ -80,7 +80,7 @@ def start_api(api_key, model_key, model_inputs, strategy):
         raise Exception("server error: Failed to return call_id")
 
 # The bare async checker.
-def check_api(api_key, call_id):
+async def check_api(api_key, call_id):
     global endpoint
     route_check = "check/v2/"
     url_check = endpoint + route_check
