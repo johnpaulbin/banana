@@ -5,6 +5,7 @@ import json
 from uuid import uuid4
 import concurrent.futures
 
+
 endpoint = 'https://api.banana.dev/'
 # Endpoint override for development
 if 'BANANA_URL' in os.environ:
@@ -18,19 +19,23 @@ if 'BANANA_URL' in os.environ:
 # THE MAIN FUNCTIONS
 # ___________________________________
 
-
+def api_threader(api_key, call_id):
+    while True:
+        data = check_api(api_key, call_id)
+        if data['message'].lower() == "success":
+            return data
+        
 def run_main(api_key, model_key, model_inputs, strategy):
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(start_api, api_key, model_key, model_inputs, strategy)
         call_id = future.result()
     #call_id = start_api(api_key, model_key, model_inputs, strategy)
+    #out_queue=queue.Queue()
     while True:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            future = executor.submit(check_api, api_key, call_id)
-            dict_out = future.result()
-        #dict_out = check_api(api_key, call_id)
-            if dict_out['message'].lower() == "success":
-                return dict_out
+        
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(api_threader, api_key, call_id)
+            return future.result()
 
 def start_main(api_key, model_key, model_inputs, strategy):
     call_id = start_api(api_key, model_key, model_inputs, strategy)
