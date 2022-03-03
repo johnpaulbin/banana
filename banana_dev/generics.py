@@ -1,4 +1,4 @@
-import grequests
+import requests
 import time
 import os
 import json
@@ -25,9 +25,12 @@ def run_main(api_key, model_key, model_inputs, strategy):
         call_id = future.result()
     #call_id = start_api(api_key, model_key, model_inputs, strategy)
     while True:
-        dict_out = check_api(api_key, call_id)
-        if dict_out['message'].lower() == "success":
-            return dict_out
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            future = executor.submit(check_api, api_key, call_id)
+            dict_out = future.result()
+        #dict_out = check_api(api_key, call_id)
+            if dict_out['message'].lower() == "success":
+                return dict_out
 
 def start_main(api_key, model_key, model_inputs, strategy):
     call_id = start_api(api_key, model_key, model_inputs, strategy)
@@ -56,7 +59,7 @@ def start_api(api_key, model_key, model_inputs, strategy):
         "strategy": strategy,
     }
 
-    response = grequests.post(url_start, json=payload)
+    response = requests.post(url_start, json=payload)
 
     if response.status_code != 200:
         raise Exception("server error: status code {}".format(response.status_code))
@@ -88,7 +91,7 @@ def check_api(api_key, call_id):
         "callID": call_id, 
         "apiKey": api_key
     }
-    response = grequests.post(url_check, json=payload)
+    response = requests.post(url_check, json=payload)
 
     if response.status_code != 200:
         raise Exception("server error: status code {}".format(response.status_code))
