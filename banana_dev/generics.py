@@ -29,13 +29,8 @@ def run_main(api_key, model_key, model_inputs, strategy):
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(start_api, api_key, model_key, model_inputs, strategy)
         call_id = future.result()
-    #call_id = start_api(api_key, model_key, model_inputs, strategy)
-    #out_queue=queue.Queue()
-    while True:
-        
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(api_threader, api_key, call_id)
-            return future.result()
+        data = executor.submit(api_threader, api_key, call_id)
+        return data.result()
 
 def start_main(api_key, model_key, model_inputs, strategy):
     call_id = start_api(api_key, model_key, model_inputs, strategy)
