@@ -4,6 +4,8 @@ import os
 import json
 from uuid import uuid4
 import concurrent.futures
+import aiohttp
+import asyncio
 
 
 endpoint = 'https://api.banana.dev/'
@@ -83,27 +85,31 @@ def check_api(api_key, call_id):
     route_check = "check/v2/"
     url_check = endpoint + route_check
     # Poll server for completed task
+    async with aiohttp.ClientSession() as session:
+        payload = {
+            "id": str(uuid4()),
+            "created": int(time.time()),
+            "longPoll": True,
+            "callID": call_id, 
+            "apiKey": api_key
+        }
+        async with session.post(
+                url_check,
+                data=payload
+        ) as response:
+        #response = requests.post(url_check, json=payload)
 
-    payload = {
-        "id": str(uuid4()),
-        "created": int(time.time()),
-        "longPoll": True,
-        "callID": call_id, 
-        "apiKey": api_key
-    }
-    response = requests.post(url_check, json=payload)
+        #if response.status_code != 200:
+        #    raise Exception("server error: status code {}".format(response.status_code))
 
-    if response.status_code != 200:
-        raise Exception("server error: status code {}".format(response.status_code))
+            try:
+                out = (await response.json())
+            except:
+                raise Exception("server error: returned invalid json")
 
-    try:
-        out = response.json()
-    except:
-        raise Exception("server error: returned invalid json")
-
-    try:
-        if "error" in out['message'].lower():
-            raise Exception(out['message'])
-        return out
-    except Exception as e:
-        raise e
+            try:
+                if "error" in out['message'].lower():
+                    raise Exception(out['message'])
+                return out
+            except Exception as e:
+                raise e
