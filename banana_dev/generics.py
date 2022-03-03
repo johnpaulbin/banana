@@ -3,6 +3,7 @@ import time
 import os
 import json
 from uuid import uuid4
+import concurrent.futures
 
 endpoint = 'https://api.banana.dev/'
 # Endpoint override for development
@@ -19,7 +20,10 @@ if 'BANANA_URL' in os.environ:
 
 
 def run_main(api_key, model_key, model_inputs, strategy):
-    call_id = start_api(api_key, model_key, model_inputs, strategy)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        future = executor.submit(start_api, api_key, model_key, model_inputs, strategy)
+        call_id = future.result()
+    #call_id = start_api(api_key, model_key, model_inputs, strategy)
     while True:
         dict_out = check_api(api_key, call_id)
         if dict_out['message'].lower() == "success":
