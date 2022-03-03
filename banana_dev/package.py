@@ -1,14 +1,16 @@
 from .generics import run_main, start_main, check_main
+import concurrent.futures
 
 # Generics
 def run(api_key, model_key, model_inputs, strategy = {}):
-    out = run_main(
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(run_main,
         api_key = api_key, 
         model_key = model_key, 
         model_inputs = model_inputs,
-        strategy = strategy,
-    )
-    return out
+        strategy = strategy)
+        out = future.result()
+        return out
 
 def start(api_key, model_key, model_inputs, strategy = {}):
     out = start_main(
