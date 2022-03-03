@@ -3,10 +3,6 @@ import time
 import os
 import json
 from uuid import uuid4
-import concurrent.futures
-import aiohttp
-import asyncio
-
 
 endpoint = 'https://api.banana.dev/'
 # Endpoint override for development
@@ -21,25 +17,20 @@ if 'BANANA_URL' in os.environ:
 # THE MAIN FUNCTIONS
 # ___________________________________
 
-def api_threader(api_key, call_id):
-    while True:
-        data = (await check_api(api_key, call_id))
-        if data['message'].lower() == "success":
-            return data
-        
+
 def run_main(api_key, model_key, model_inputs, strategy):
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(start_api, api_key, model_key, model_inputs, strategy)
-        call_id = future.result()
-        data = executor.submit(api_threader, api_key, call_id)
-        return data.result()
+    call_id = start_api(api_key, model_key, model_inputs, strategy)
+    while True:
+        dict_out = check_api(api_key, call_id)
+        if dict_out['message'].lower() == "success":
+            return dict_out
 
 def start_main(api_key, model_key, model_inputs, strategy):
     call_id = start_api(api_key, model_key, model_inputs, strategy)
     return call_id
 
 def check_main(api_key, call_id):
-    dict_out = (await check_api(api_key, call_id))
+    dict_out = check_api(api_key, call_id)
     return dict_out
 
 
@@ -80,36 +71,32 @@ def start_api(api_key, model_key, model_inputs, strategy):
         raise Exception("server error: Failed to return call_id")
 
 # The bare async checker.
-async def check_api(api_key, call_id):
+def check_api(api_key, call_id):
     global endpoint
     route_check = "check/v2/"
     url_check = endpoint + route_check
     # Poll server for completed task
-    async with aiohttp.ClientSession() as session:
-        payload = {
-            "id": str(uuid4()),
-            "created": int(time.time()),
-            "longPoll": True,
-            "callID": call_id, 
-            "apiKey": api_key
-        }
-        async with session.post(
-                url_check,
-                data=payload
-        ) as response:
-        #response = requests.post(url_check, json=payload)
 
-        #if response.status_code != 200:
-        #    raise Exception("server error: status code {}".format(response.status_code))
+    payload = {
+        "id": str(uuid4()),
+        "created": int(time.time()),
+        "longPoll": True,
+        "callID": call_id, 
+        "apiKey": api_key
+    }
+    response = requests.post(url_check, json=payload)
 
-            try:
-                out = (await response.json())
-            except:
-                raise Exception("server error: returned invalid json")
+    if response.status_code != 200:
+        raise Exception("server error: status code {}".format(response.status_code))
 
-            try:
-                if "error" in out['message'].lower():
-                    raise Exception(out['message'])
-                return out
-            except Exception as e:
-                raise e
+    try:
+        out = response.json()
+    except:
+        raise Exception("server error: returned invalid json")
+
+    try:
+        if "error" in out['message'].lower():
+            raise Exception(out['message'])
+        return out
+    except Exception as e:
+        raise e
