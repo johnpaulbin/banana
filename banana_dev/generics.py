@@ -1,4 +1,4 @@
-import requests
+import grequests
 import time
 import os
 import json
@@ -56,7 +56,7 @@ def start_api(api_key, model_key, model_inputs, strategy):
         "strategy": strategy,
     }
 
-    response = requests.post(url_start, json=payload)
+    response = grequests.post(url_start, json=payload)
 
     if response.status_code != 200:
         raise Exception("server error: status code {}".format(response.status_code))
@@ -88,7 +88,7 @@ def check_api(api_key, call_id):
         "callID": call_id, 
         "apiKey": api_key
     }
-    response = requests.post(url_check, json=payload)
+    response = grequests.post(url_check, json=payload)
 
     if response.status_code != 200:
         raise Exception("server error: status code {}".format(response.status_code))
